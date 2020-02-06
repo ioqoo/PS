@@ -1,6 +1,6 @@
 #include <bits/stdc++.h>
 #define MAX 1005
-#define MIN -1000
+#define MIN -2e9
 
 using namespace std;
 
@@ -39,13 +39,6 @@ int main(){
             dp[i][j][1] = grid[i][j] + max(max(dp[i-1][j][0], dp[i-1][j][1]), dp[i][j+1][1]);
         }
     }
-
-//    for (int i=0;i<=N+1;i++){
-//        for (int j=0;j<=M+1;j++){
-//            printf("%5d/%5d ", dp[i][j][0], dp[i][j][1]);
-//        }
-//        printf("\n");
-//    }
 
     printf("%d\n", max(dp[N][M][0], dp[N][M][1]));
 }
