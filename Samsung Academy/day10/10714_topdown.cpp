@@ -60,12 +60,12 @@ int main(){
 	}
 	printf("%lld\n", ans);
 	
-	for (int i=0;i<N;i++){
-		for (int j=0;j<N;j++){
-			printf("%3lld ", dp[i][j]);
-		}
-		printf("\n");
-	}
+//	for (int i=0;i<N;i++){
+//		for (int j=0;j<N;j++){
+//			printf("%3lld ", dp[i][j]);
+//		}
+//		printf("\n");
+//	}
 	
 
     return 0;
