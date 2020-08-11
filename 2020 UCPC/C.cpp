@@ -72,6 +72,9 @@ int main() {
         }
         printf("-1\n");
     }
+    
+    vector<int> sgraph[MAX];
+    for (int i=0;i<
 
     return 0;
 }
