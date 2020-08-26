@@ -5,11 +5,11 @@ using namespace std;
 
 int main(){
 	ofstream out("sample_TC.txt");
-	out << "1\n";
-	out << "300000\n";
-	for (int i=0;i<300000;i++){
-		out << "2 ";
+	out << "20000\n";
+	for (int i=0;i<19999;i++){
+		out << i << " " << i+1 << " " << "100\n";
 	}
+	out << "0";
 	
 	out.close();
 }
