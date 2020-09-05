@@ -1,185 +1,183 @@
-#include <iostream>
-#include <queue>
-#include <vector>
-#include <cstring>
-#include <algorithm>
-
+#include <bits/stdc++.h>
 #define ll long long
-#define pii pair<int, int>
-//const int INF = 0x3f3f3f3f;
 const int NMAX = 100005;
-const int EMAX = 200005;
-const int PMAX = 18;
-
+const int MMAX = 200005;
+const int PMAX = 20;
 using namespace std;
 
 struct edge{
-    int num, u, v, w;
+	int u, v, w, num;
 };
 
 struct cmp{
-    bool operator() (edge a, edge b){
-        return a.w > b.w;
-    }
+	bool operator () (edge A, edge B){
+		return A.w > B.w;
+	}
+};
+
+struct edge_tree{
+	int to, w, num;
 };
 
 int N, M;
-edge edgearr[EMAX];
-vector<pii> graph[NMAX];
-vector<pii> LCAtree[NMAX];
-// *****mst*****
-bool ismstedge[EMAX]; // true : #i edge was used for mst
-int ufp[NMAX]; // union-find root
-priority_queue<edge, vector<edge>, cmp> edgePQ;
-priority_queue<edge, vector<edge>, cmp> nonmstPQ;
-ll mst_val;
-int mst_edgecnt;
-bool mst_succ;
-// *****LCA*****
-int p[NMAX][PMAX]; // LCA parent parse table
-int depth[NMAX]; // LCA depth table
-// maxw[i][j] = largest weight between (node i) ~ (node i's 2^jth parent)
-int maxw[NMAX][PMAX];
-
-ll ans[EMAX];
+ll MST_val;
+int p[NMAX];
+int p_LCA[NMAX][PMAX], depth[NMAX], jump[NMAX];
+bool MST_edge[MMAX];
+ll ans[MMAX];
+edge_tree node_to_edge[NMAX]; // node_to_edge[a] = a에서 a의 부모 노드로 가는 edge num 
+vector<edge> edge_list;
+vector<edge_tree> MST[NMAX];
+priority_queue<edge, vector<edge>, cmp> PQ_MST;
+priority_queue<edge, vector<edge>, cmp> PQ_NOT_MST;
 
 
 int find(int node){
-    if (ufp[node] == -1) return node;
-    return ufp[node] = find(ufp[node]);
+	if (p[node] == -1) return node;
+	return p[node] = find(p[node]);
 }
 
-bool merge(int a, int b){
-    int roota = find(a);
-    int rootb = find(b);
-    if (roota == rootb) return false;
-    ufp[roota] = rootb;
-    return true;
+void merge(int A, int B){
+	int roota = find(A);
+	int rootb = find(B);
+	if (roota == rootb) return;
+	p[roota] = rootb;
+	return;
 }
 
 void make_tree(int curr){
-    for (auto pp: LCAtree[curr]){
-        int next = pp.first, weight = pp.second;
-        if (depth[next] == -1){
-            depth[next] = depth[curr] + 1;
-            p[next][0] = curr;
-            maxw[next][0] = weight;
-            make_tree(next);
-        }
-    }
+	for (auto P: MST[curr]){
+		if (depth[P.to] != -1) continue;
+		depth[P.to] = depth[curr] + 1;
+		p_LCA[P.to][0] = curr;
+		jump[P.to] = curr;
+		node_to_edge[P.to] = {curr, P.w, P.num};
+		make_tree(P.to);
+	}
 }
 
-int getmax(int u, int v){
-    int ret = -1;
-    if (depth[u] < depth[v]) swap(u, v);
-    int diff = depth[u] - depth[v];
-    for (int i=0;diff;i++){
-        if (diff%2) {
-            ret = max(ret, maxw[u][i]);
-            u = p[u][i];
-        }
-        diff /= 2;
-    }
-    if (u!=v){
-        for (int i=PMAX-1;i>=0;i--){
-            if (p[u][i] != -1 && p[u][i] != p[v][i]){
-                ret = max(ret, maxw[u][i]);
-                ret = max(ret, maxw[v][i]);
-                u = p[u][i];
-                v = p[v][i];
-            }
-        }
-        ret = max(ret, maxw[u][0]);
-        ret = max(ret, maxw[v][0]);
-        u = p[u][0];
-    }
-    return ret;
+void LCA_preprocess(){
+	for (int j=0;j<PMAX;j++){
+		for (int i=1;i<=N;i++){
+			if (p_LCA[i][j] != -1){
+				p_LCA[i][j+1] = p_LCA[p_LCA[i][j]][j];
+			}
+		}
+	}
 }
 
-
-int main() {
-    #ifndef ONLINE_JUDGE
-    freopen("input.txt", "r", stdin);
-    #endif
-
-    scanf("%d %d", &N, &M);
-    int u, v, w;
-    for (int i=0;i<M;i++){
-        scanf("%d %d %d", &u, &v, &w);
-        graph[u].push_back(pii(v, w));
-        graph[v].push_back(pii(u, w));
-        edgearr[i] = {i, u, v, w};
-        edgePQ.push(edgearr[i]);
-    }
-    
-    memset(ufp, -1, sizeof(ufp));
-    while(!edgePQ.empty()){
-        auto E = edgePQ.top();
-        edgePQ.pop();
-        if (merge(E.u, E.v)) {
-            LCAtree[E.u].push_back(pii(E.v, E.w));
-            LCAtree[E.v].push_back(pii(E.u, E.w));
-            ismstedge[E.num] = true;
-            mst_val += E.w;
-            mst_edgecnt++;
-        }
-        else{
-            nonmstPQ.push(E);
-        }
-    }
-    
-    if (mst_edgecnt != N-1) mst_succ = false;
-    else mst_succ = true;
-    if (!mst_succ){
-        for (int i=0;i<M;i++){
-            printf("-1\n");
-        }
-        return 0;
-    }
-        
-    memset(p, -1, sizeof(p));
-    memset(depth, -1, sizeof(depth));
-    memset(maxw, -1, sizeof(maxw));
-    depth[1] = 0;
-    make_tree(1);
-    
-    for (int j=0;j<PMAX-1;j++){
-        for (int i=1;i<=N;i++){
-            if (p[i][j] != -1){
-                p[i][j+1] = p[p[i][j]][j];
-                if (p[i][j+1] != -1) maxw[i][j+1] = max(maxw[i][j], maxw[p[i][j]][j]);
-            }
-        }
-    }
-    
-//    for (int i=1;i<=N;i++){
-//        printf("***node %d***\n", i);
-//        for (int j=0;j<=2;j++){
-//            printf("max weight to 2^%d th parent node: %d\n", j, maxw[i][j]);
-//        }
-//    }
-    
-    while(!nonmstPQ.empty()){
-        auto E = nonmstPQ.top();
-        nonmstPQ.pop();
-        int maxweight = getmax(E.u, E.v);
-//        printf("u: %d , v: %d , maxweight between u~v : %d\n", E.u, E.v, maxweight);
-        if (maxweight == -1){
-            ans[E.num] = -1;
-        }
-        else {
-            ans[E.num] = mst_val - maxweight + E.w;
-        }
-    }
-    
-    for (int i=0;i<M;i++){
-        if (!ismstedge[i]) printf("%lld\n", mst_val);
-        else printf("%lld\n", ans[i]);
-    }
-    
-
-    return 0;
+int get_LCA(int u, int v){
+	if (depth[u] < depth[v]) swap(u, v);
+	int diff = depth[u] - depth[v];
+	for (int i=0;diff;i++){
+		if (diff%2) u = p_LCA[u][i];
+		diff /= 2;
+	}
+	if (u != v){
+		for (int j=PMAX-1;j>=0;j--){
+			if (p_LCA[u][j] != -1 && p_LCA[u][j] != p_LCA[v][j]){
+				u = p_LCA[u][j];
+				v = p_LCA[v][j];
+			}
+		}
+		u = p_LCA[u][0];
+	}
+	return u;
 }
 
+int main(){
+	#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+	#endif
+
+	// ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+	
+	scanf("%d %d", &N, &M);
+	
+	memset(p, -1, sizeof(p));
+	memset(p_LCA, -1, sizeof(p_LCA));
+	memset(depth, -1, sizeof(depth));
+	memset(ans, -1, sizeof(ans));
+	
+	for (int i=0;i<M;i++){
+		int u, v, w;
+		scanf("%d %d %d", &u, &v, &w);
+		edge_list.push_back({u, v, w, i});
+		PQ_MST.push({u, v, w, i});
+	}
+	
+	int merge_cnt = 0;
+	while(!PQ_MST.empty()){
+		auto P = PQ_MST.top(); PQ_MST.pop();
+		if (find(P.u) != find(P.v)){
+			merge(P.u, P.v);
+			merge_cnt++;
+			MST_val += (ll)P.w;
+			MST[P.u].push_back({P.v, P.w, P.num});
+			MST[P.v].push_back({P.u, P.w, P.num});
+			MST_edge[P.num] = true;
+		}
+		else{
+			PQ_NOT_MST.push(P);
+		}
+	}
+	
+	if (merge_cnt != N-1){
+		for (int i=0;i<M;i++){
+			printf("-1\n");
+		}
+		return 0;
+	}
+	
+	depth[1] = 0;
+	jump[1] = -1;
+	make_tree(1);
+	LCA_preprocess();
+	
+	int replace_cnt = 0;
+	
+	while(!PQ_NOT_MST.empty()){
+		auto P = PQ_NOT_MST.top(); PQ_NOT_MST.pop();
+		ans[P.num] = MST_val;
+		int LCA = get_LCA(P.u, P.v);
+		int u = P.u, v = P.v;
+		if (u != LCA){
+			while(1){
+				auto curr_edge = node_to_edge[u];
+				if (ans[curr_edge.num] == -1){
+					ans[curr_edge.num] = MST_val - (ll)curr_edge.w + (ll)P.w;
+					replace_cnt++;
+				}
+				int origin_u = u;
+				u = jump[u];
+				if (depth[origin_u] > depth[LCA]) jump[origin_u] = LCA;
+				if (depth[u] <= depth[LCA]) break;
+			}
+		}
+		if (v != LCA){
+			while(1){
+				auto curr_edge = node_to_edge[v];
+				if (ans[curr_edge.num] == -1){
+					ans[curr_edge.num] = MST_val - (ll)curr_edge.w + (ll)P.w;
+					replace_cnt++;
+				}
+				int origin_v = v;
+				v = jump[v];
+				if (depth[origin_v] > depth[LCA]) jump[origin_v] = LCA;
+				if (depth[v] <= depth[LCA]) break;
+			}
+		}
+		if (replace_cnt == N-1) break;
+	}
+	
+	for (int i=0;i<M;i++){
+		if (!MST_edge[i]) printf("%lld\n", MST_val);
+		else printf("%lld\n", ans[i]);
+	}
+	
+	
+	
+	return 0;
+}
 
 
