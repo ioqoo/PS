@@ -52,6 +52,17 @@ struct Trie{
         return (curr_node != nullptr && curr_node->is_ended);
     }
     
+    void insert(const char* key){ // ±â¿õ ver
+        if(*key == '\0') output = true;
+        else{
+            int next = *key-'A';
+            if(!go[next]) go[next] = new Trie;
+            go[next]->insert(key+1);
+        }
+    }  
+    
+} 
+    
     void dfs(int i, int j, string word){
         if (word.size() > 8) return;
         
